@@ -1,0 +1,12 @@
+#!/bin/rc
+
+O=6
+
+urls=( https://www.tagesschau.de/xml/rss2 https://lukesmith.xyz/rss.xml )
+prefixes=( tschau lukesmith )
+
+ramfs -m /lib/news
+
+for(i in `{seq 1 $#urls}){
+	hget $urls($i) | $O.out -c -p $prefixes($i)
+}
