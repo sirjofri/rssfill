@@ -17,3 +17,10 @@ For best integration, you can run this directly on `/lib/news`, the
 default `news(1)` directory, or use `bind(1)` to build your own
 `/lib/news`. Make a loop with a `sleep` command to automatically
 fetch data every hour or use a cronjob.
+
+Building and Installation
+-------------------------
+
+**You need the `xmlpull` library. You can find it in `extra` (`9fs 9front`).**
+
+	mk install
