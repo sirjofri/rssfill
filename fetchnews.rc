@@ -2,8 +2,8 @@
 
 O=6
 
-urls=( https://www.tagesschau.de/xml/rss2 https://lukesmith.xyz/rss.xml )
-prefixes=( tschau lukesmith )
+urls=( https://www.tagesschau.de/xml/rss2 https://lukesmith.xyz/rss.xml https://www.heise.de/security/rss/news-atom.xml )
+prefixes=( tschau lukesmith heisesec )
 
 ramfs -m /lib/news
 

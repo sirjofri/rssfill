@@ -246,6 +246,10 @@ main(int argc, char **argv)
 				st = DATE;
 				break;
 			}
+			if(!strcmp(x->na, "updated") && st == ITEM){
+				st = DATE;
+				break;
+			}
 			break;
 		case START_END_TAG:
 			break;
@@ -297,6 +301,10 @@ main(int argc, char **argv)
 				break;
 			}
 			if(!strcmp(x->na, "pubDate") && st == DATE){
+				st = ITEM;
+				break;
+			}
+			if(!strcmp(x->na, "updated") && st == DATE){
 				st = ITEM;
 				break;
 			}
