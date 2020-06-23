@@ -57,6 +57,8 @@ writefeedfiles(Feed *f)
 					fprint(fd, "link:    %s\n", f->link);
 				if(f->desc != nil)
 					fprint(fd, "\n%s\n", f->desc);
+				if(f->cont != nil)
+					fprint(fd, "\n%s\n", f->cont);
 				
 				nulldir(&dir);
 				dir.mtime = d;
@@ -81,6 +83,8 @@ freefeed(Feed *f)
 			free(f->desc);
 		if(f->date != nil)
 			free(f->date);
+		if(f->cont != nil)
+			free(f->cont);
 		free(f);
 	}
 	return;
@@ -238,6 +242,13 @@ main(int argc, char **argv)
 				st = DESC;
 				break;
 			}
+			if(!strcmp(x->na, "summary") && st == ITEM){
+				st = DESC;
+				break;
+			}
+			if(!strcmp(x->na, "content") && st == ITEM){
+				st = CONTENT;
+			}
 			if(!strcmp(x->na, "link") && st == ITEM){
 				st = LINK;
 				break;
@@ -268,6 +279,9 @@ main(int argc, char **argv)
 			case DESC:
 				f->desc = strdup(x->na);
 				break;
+			case CONTENT:
+				f->cont = strdup(x->na);
+				break;
 			case DATE:
 				f->date = strdup(x->na);
 				break;
@@ -297,6 +311,14 @@ main(int argc, char **argv)
 				break;
 			}
 			if(!strcmp(x->na, "description") && st == DESC){
+				st = ITEM;
+				break;
+			}
+			if(!strcmp(x->na, "summary") && st == DESC){
+				st = ITEM;
+				break;
+			}
+			if(!strcmp(x->na, "content") && st == CONTENT){
 				st = ITEM;
 				break;
 			}

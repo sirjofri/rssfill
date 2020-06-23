@@ -4,6 +4,7 @@ struct Feed {
 	char *link;
 	char *desc;
 	char *date;
+	char *cont;
 	int s;
 	Feed *n;
 	Feed *p;
@@ -15,6 +16,7 @@ enum {
 	TITLE,
 	LINK,
 	DESC,
+	CONTENT,
 	DATE,
 	END,
 };
