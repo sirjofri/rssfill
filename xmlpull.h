@@ -3,9 +3,11 @@
  * by 20h
  */
 
+/*
 #ifdef nil
 #pragma lib "libxmlpull.a"
 #endif
+*/
 
 #ifndef XMLPULL_H
 #define XMLPULL_H
@@ -21,6 +23,7 @@ enum {
 	START_DOCUMENT = 0x0,
 	START_TAG,
 	START_END_TAG,
+	CDATA,
 	TEXT,
 	TEXT_C,
 	ATTR,

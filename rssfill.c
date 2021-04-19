@@ -24,11 +24,11 @@ void
 writefeedfiles(Feed *f)
 {
 	int fd;
-	char file[1024];
+	char *file = nil;
 	long d;
 	Tm t;
 	Dir dir;
-	
+
 	if(f != nil){
 		while(f->n != nil)
 			f = f->n;
@@ -41,18 +41,20 @@ writefeedfiles(Feed *f)
 							sysfatal("tmparse: %r");
 						else
 							fprint(2, "tmparse: auto parsed date\n");
-				
+
 				d = tmnorm(&t);
-				
-				snprint(file, 1023, "%s/%s%ld", directory, prefix, d);
-				
+
+				if(file)
+					free(file);
+				file = smprint("%s/%s%ld", directory, prefix, d);
+
 				fd = create(file, OWRITE, 0666);
 				if(!fd)
 					sysfatal("error creating file %s: %r", file);
-				
+
 				if(chatty)
 					fprint(2, "writing file %s\n", file);
-				
+
 				if(dry){
 					f = f->p;
 					continue;
@@ -67,11 +69,11 @@ writefeedfiles(Feed *f)
 					fprint(fd, "\n%s\n", f->desc);
 				if(f->cont != nil)
 					fprint(fd, "\n%s\n", f->cont);
-				
+
 				nulldir(&dir);
 				dir.mtime = d;
 				dirfwstat(fd, &dir);
-				
+
 				close(fd);
 			}
 			f = f->p;
@@ -276,22 +278,28 @@ main(int argc, char **argv)
 			if(!strcmp(x->na, "href") && st == LINK)
 				f->link = strdup(x->va);
 			break;
+		case CDATA:
 		case TEXT:
 			switch(st){
 			case TITLE:
-				f->title = strdup(x->na);
+				if (!f->title || strlen(f->title) == 0)
+					f->title = strdup(x->na);
 				break;
 			case LINK:
-				f->link = strdup(x->na);
+				if (!f->link || strlen(f->link) == 0)
+					f->link = strdup(x->na);
 				break;
 			case DESC:
-				f->desc = strdup(x->na);
+				if (!f->desc || strlen(f->desc) == 0)
+					f->desc = strdup(x->na);
 				break;
 			case CONTENT:
-				f->cont = strdup(x->na);
+				if (!f->cont || strlen(f->cont) == 0)
+					f->cont = strdup(x->na);
 				break;
 			case DATE:
-				f->date = strdup(x->na);
+				if (!f->date || strlen(f->date) == 0)
+					f->date = strdup(x->na);
 				break;
 			default:
 				break;
@@ -299,13 +307,13 @@ main(int argc, char **argv)
 			break;
 		case END_TAG:
 			if((!strcmp(x->na, "item") || !strcmp(x->na, "entry")) && st == ITEM){
-				if(searchfeed(r, f->title, f->link, f->desc, f->date) == nil){
+			//	if(searchfeed(r, f->title, f->link, f->desc, f->date) == nil){
 					r = addfeed(r, f);
 					f = nil;
-				} else {
-					freefeed(f);
-					f = nil;
-				}
+			//	} else {
+			//		freefeed(f);
+			//		f = nil;
+			//	}
 							
 				st = NONE;
 				break;
