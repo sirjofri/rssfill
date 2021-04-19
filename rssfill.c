@@ -1,6 +1,7 @@
 #include <u.h>
 #include <libc.h>
 #include <bio.h>
+#include <String.h>
 #include "xmlpull.h"
 #include "rssfill.h"
 
@@ -10,6 +11,9 @@ char  *prefix = "";
 int chatty = 0;
 int dry = 0;
 
+int dohtml;
+int typehtml;
+
 void
 usage(void)
 {
@@ -18,6 +22,59 @@ usage(void)
 		"[ -p prefix ] "
 		"[ -d directory ]\n", argv0);
 	exits("usage");
+}
+
+char*
+html(char *text)
+{
+	char *s, buf[8192];
+	String *str;
+	int n, m, written;
+	int p[2];
+
+	if (!dohtml)
+		return strdup(text);
+	dohtml = 0;
+
+	if (pipe(p) < 0)
+		sysfatal("pipe: %r");
+
+	s = nil;
+	switch (fork()){
+	case -1:
+		close(p[0]);
+		close(p[1]);
+		return strdup(text);
+		break;
+	case 0:
+		dup(p[1], 0);
+		dup(p[1], 1);
+		close(p[1]);
+		close(p[0]);
+		execl("/bin/htmlfmt", "htmlfmt", "-cutf-8", nil);
+		exits(nil);
+	default:
+		close(p[1]);
+		str = s_new();
+		written = 0;
+		while (written < strlen(text) && (n = write(p[0], &text[written], strlen(&text[written]))) > 0){
+			written += n;
+			write(p[0], "", 0); // htmlfmt needs double flush, idk why
+			write(p[0], "", 0);
+			m = read(p[0], buf, 8191);
+			buf[m] = 0;
+			str = s_append(str, buf);
+		}
+		close(p[0]);
+		while (waitpid() > 0)
+			;
+		s = strdup(s_to_c(str));
+		s_free(str);
+	}
+
+	if (s)
+		return s;
+	return strdup(text);
 }
 
 void
@@ -208,7 +265,7 @@ main(int argc, char **argv)
 	xmlpull *x, *a;
 	char st;
 	Feed *f, *r;
-	
+
 	ARGBEGIN {
 	case 'd':
 		directory = EARGF(usage());
@@ -223,14 +280,14 @@ main(int argc, char **argv)
 		chatty = 1;
 		break;
 	} ARGEND;
-	
+
 	if(dry)
 		chatty = 1;
-	
+
 	st = NONE;
 	f = nil;
 	r = nil;
-	
+
 	x = openxmlpull(0);
 	while((a = nextxmlpull(x)) != nil && st != END){
 		switch(a->ev){
@@ -277,13 +334,17 @@ main(int argc, char **argv)
 		case ATTR:
 			if(!strcmp(x->na, "href") && st == LINK)
 				f->link = strdup(x->va);
+			if(!strcmp(x->na, "type") && !cistrcmp(x->va, "html"))
+				typehtml = 1;
 			break;
 		case CDATA:
+			/* if typehtml AND cdata, do html */
+			dohtml = typehtml;
 		case TEXT:
 			switch(st){
 			case TITLE:
 				if (!f->title || strlen(f->title) == 0)
-					f->title = strdup(x->na);
+					f->title = html(x->na);
 				break;
 			case LINK:
 				if (!f->link || strlen(f->link) == 0)
@@ -291,11 +352,11 @@ main(int argc, char **argv)
 				break;
 			case DESC:
 				if (!f->desc || strlen(f->desc) == 0)
-					f->desc = strdup(x->na);
+					f->desc = html(x->na);
 				break;
 			case CONTENT:
 				if (!f->cont || strlen(f->cont) == 0)
-					f->cont = strdup(x->na);
+					f->cont = html(x->na);
 				break;
 			case DATE:
 				if (!f->date || strlen(f->date) == 0)
@@ -362,6 +423,6 @@ main(int argc, char **argv)
 		}
 	}
 	freexmlpull(x);
-	freefeedt(r);
+//	freefeedt(r);
 	exits(nil);
 }

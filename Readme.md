@@ -21,6 +21,6 @@ fetch data every hour or use a cronjob.
 Building and Installation
 -------------------------
 
-**You need the `xmlpull` library. You can find it in `extra` (`9fs 9front`).**
+This package includes an updated version of `xmlpull` from contrib.
 
 	mk install
