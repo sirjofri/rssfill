@@ -77,10 +77,28 @@ html(char *text)
 	return strdup(text);
 }
 
+Tm*
+parsetime(Tm *t, char *s, int *validtime)
+{
+	int i;
+	char *valid[] = {
+		"?W[,] ?D ?M YYYY hh:mm:ss ?Z",
+		"YYYY-MM-DD[T]hh:mm:ss?Z",
+	};
+
+	for (i = 0; i < sizeof(valid)/sizeof(char*); i++){
+		if (tmparse(t, valid[i], s, nil, nil) != nil) {
+			*validtime = 1;
+			return t;
+		}
+	}
+	return nil;
+}
+
 void
 writefeedfiles(Feed *f)
 {
-	int fd;
+	int fd, validtime;
 	char *file = nil;
 	long d;
 	Tm t;
@@ -92,14 +110,14 @@ writefeedfiles(Feed *f)
 
 		while(f != nil){
 			if(f->s == 2){
-				if(tmparse(&t, "W[,] ?D MMM YYYY hh:mm:ss ?Z", f->date, nil, nil) == nil)
-					if(tmparse(&t, "YYYY-MM-DD[T]hh:mm:ss?Z", f->date, nil, nil) == nil)
-						if(tmparse(&t, nil, f->date, nil, nil) == nil)
-							sysfatal("tmparse: %r");
-						else
-							fprint(2, "tmparse: auto parsed date\n");
+				d = time(nil);
+				validtime = 0;
+				if (f->date)
+					if(parsetime(&t, f->date, &validtime) == nil)
+						sysfatal("tmparse: %r");
 
-				d = tmnorm(&t);
+				if (validtime)
+					d = tmnorm(&t);
 
 				if(file)
 					free(file);
