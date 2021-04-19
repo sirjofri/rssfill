@@ -3,7 +3,7 @@
 #include <bio.h>
 #include "xmlpull.h"
 #include "rssfill.h"
-#include "date.h"
+//#include "date.h"
 
 char  *directory = "/lib/news";
 char  *prefix = "";
@@ -36,14 +36,14 @@ writefeedfiles(Feed *f)
 
 		while(f != nil){
 			if(f->s == 2){
-				if(tmparse(&t, "W[,] ?D MMM YYYY hh:mm:ss ?Z", f->date, nil) == nil)
-					if(tmparse(&t, "YYYY-MM-DD[T]hh:mm:ss?Z", f->date, nil) == nil)
-						if(tmparse(&t, nil, f->date, nil) == nil)
+				if(tmparse(&t, "W[,] ?D MMM YYYY hh:mm:ss ?Z", f->date, nil, nil) == nil)
+					if(tmparse(&t, "YYYY-MM-DD[T]hh:mm:ss?Z", f->date, nil, nil) == nil)
+						if(tmparse(&t, nil, f->date, nil, nil) == nil)
 							sysfatal("tmparse: %r");
 						else
 							fprint(2, "tmparse: auto parsed date\n");
 				
-				d = t.abs;
+				d = tmnorm(&t);
 				
 				snprint(file, 1023, "%s/%s%ld", directory, prefix, d);
 				
