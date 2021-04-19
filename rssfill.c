@@ -3,7 +3,6 @@
 #include <bio.h>
 #include "xmlpull.h"
 #include "rssfill.h"
-//#include "date.h"
 
 char  *directory = "/lib/news";
 char  *prefix = "";
