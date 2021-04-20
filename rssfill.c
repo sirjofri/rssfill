@@ -25,14 +25,14 @@ usage(void)
 }
 
 char*
-cdatahtml(char *text)
+parsehtml(char *text, int *variable, char *c1, char *c2, char *c3, char *c4)
 {
 	char *s, buf[8192];
 	String *str;
 	int n, m, written;
 	int p[2];
 
-	dohtml = 0;
+	*variable = 0;
 
 	if (pipe(p) < 0)
 		sysfatal("pipe: %r");
@@ -49,64 +49,14 @@ cdatahtml(char *text)
 		dup(p[1], 1);
 		close(p[1]);
 		close(p[0]);
-		execl("/bin/htmlfmt", "htmlfmt", "-cutf-8", nil);
+		execl(c1, c2, c3, c4, nil);
 		exits(nil);
 	default:
 		close(p[1]);
 		str = s_new();
 		written = 0;
-		while (written < strlen(text) && (n = write(p[0], &text[written], strlen(&text[written]))) > 0){
-			written += n;
-			write(p[0], "", 0); // htmlfmt needs double flush, idk why
-			write(p[0], "", 0);
-			m = read(p[0], buf, 8191);
-			buf[m] = 0;
-			str = s_append(str, buf);
-		}
-		close(p[0]);
-		while (waitpid() > 0)
-			;
-		s = strdup(s_to_c(str));
-		s_free(str);
-	}
-
-	if (s)
-		return s;
-	return strdup(text);
-}
-
-char*
-dotypehtml(char *text)
-{
-	char *s, buf[8192];
-	String *str;
-	int n, m, written;
-	int p[2];
-
-	typehtml = 0;
-
-	if (pipe(p) < 0)
-		sysfatal("pipe: %r");
-
-	s = nil;
-	switch (fork()){
-	case -1:
-		close(p[0]);
-		close(p[1]);
-		return strdup(text);
-		break;
-	case 0:
-		dup(p[1], 0);
-		dup(p[1], 1);
-		close(p[1]);
-		close(p[0]);
-		execl("/bin/rc", "rc", "-c", "uhtml | sed 's/&lt;/</g;s/&gt;/>/g;s/&amp;/&/g' | htmlfmt -cutf-8", nil);
-		exits(nil);
-	default:
-		close(p[1]);
-		str = s_new();
-		written = 0;
-		while (written < strlen(text) && (n = write(p[0], &text[written], strlen(&text[written]))) > 0){
+		while (written < strlen(text) &&
+				(n = write(p[0], &text[written], strlen(&text[written]))) > 0){
 			written += n;
 			write(p[0], "", 0); // htmlfmt needs double flush, idk why
 			write(p[0], "", 0);
@@ -129,11 +79,14 @@ dotypehtml(char *text)
 char*
 html(char *text)
 {
+	/* prefer CDATA */
 	if (dohtml)
-		return cdatahtml(text);
+		return parsehtml(text, &dohtml, "/bin/htmlfmt", "htmlfmt", "-cutf-8", nil);
 
 	if (typehtml)
-		return dotypehtml(text);
+		return parsehtml(text, &typehtml,
+			"/bin/rc", "rc", "-c",
+			"uhtml | sed 's/&lt;/</g;s/&gt;/>/g;s/&amp;/&/g' | htmlfmt -cutf-8");
 
 	return strdup(text);
 }
