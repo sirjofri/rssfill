@@ -25,15 +25,13 @@ usage(void)
 }
 
 char*
-html(char *text)
+cdatahtml(char *text)
 {
 	char *s, buf[8192];
 	String *str;
 	int n, m, written;
 	int p[2];
 
-	if (!dohtml)
-		return strdup(text);
 	dohtml = 0;
 
 	if (pipe(p) < 0)
@@ -74,6 +72,69 @@ html(char *text)
 
 	if (s)
 		return s;
+	return strdup(text);
+}
+
+char*
+dotypehtml(char *text)
+{
+	char *s, buf[8192];
+	String *str;
+	int n, m, written;
+	int p[2];
+
+	typehtml = 0;
+
+	if (pipe(p) < 0)
+		sysfatal("pipe: %r");
+
+	s = nil;
+	switch (fork()){
+	case -1:
+		close(p[0]);
+		close(p[1]);
+		return strdup(text);
+		break;
+	case 0:
+		dup(p[1], 0);
+		dup(p[1], 1);
+		close(p[1]);
+		close(p[0]);
+		execl("/bin/rc", "rc", "-c", "uhtml | sed 's/&lt;/</g;s/&gt;/>/g;s/&amp;/&/g' | htmlfmt -cutf-8", nil);
+		exits(nil);
+	default:
+		close(p[1]);
+		str = s_new();
+		written = 0;
+		while (written < strlen(text) && (n = write(p[0], &text[written], strlen(&text[written]))) > 0){
+			written += n;
+			write(p[0], "", 0); // htmlfmt needs double flush, idk why
+			write(p[0], "", 0);
+			m = read(p[0], buf, 8191);
+			buf[m] = 0;
+			str = s_append(str, buf);
+		}
+		close(p[0]);
+		while (waitpid() > 0)
+			;
+		s = strdup(s_to_c(str));
+		s_free(str);
+	}
+
+	if (s)
+		return s;
+	return strdup(text);
+}
+
+char*
+html(char *text)
+{
+	if (dohtml)
+		return cdatahtml(text);
+
+	if (typehtml)
+		return dotypehtml(text);
+
 	return strdup(text);
 }
 
@@ -356,8 +417,8 @@ main(int argc, char **argv)
 				typehtml = 1;
 			break;
 		case CDATA:
-			/* if typehtml AND cdata, do html */
-			dohtml = typehtml;
+			/* not really correct, but assume CDATA is always html */
+			dohtml = 1;
 		case TEXT:
 			switch(st){
 			case TITLE:
